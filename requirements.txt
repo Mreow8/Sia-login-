@@ -1,0 +1,5 @@
+Django==5.2.8
+firebase_admin==6.6.0
+python-decouple==3.8
+django-pipeline==4.1.0
+gunicorn==21.2.0
