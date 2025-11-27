@@ -1,0 +1,86 @@
+{% load static %} <!DOCTYPE html>
+<html>
+  <head>
+    <title>Welcome Back</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="{% static 'styles/login.css' %}" />
+  </head>
+  <body>
+      <div class="hero-header"></div>
+
+      <div class="form-wrapper">
+        <h2 id="page-title">Welcome Back</h2>
+        <p class="subtitle" id="page-subtitle">Login to your account</p>
+
+        <div id="email-section">
+          <div id="email-login-view">
+            <input type="email" id="login-email" placeholder="Email Address" />
+            <input type="password" id="login-password" placeholder="Password" />
+
+            <div style="text-align: right; margin-top: 5px; margin-bottom: 5px">
+              <a
+                href="#"
+                style="font-size: 12px; color: #88a494; text-decoration: none"
+                >Forgot Password?</a
+              >
+            </div>
+
+            <button onclick="handleEmailLogin()">Login</button>
+
+            <div class="bottom-link">
+              Don't have an account?
+              <span onclick="setMode('register')">Sign up</span>
+            </div>
+          </div>
+
+          <div id="email-register-view" class="hidden">
+            <div id="email-reg-step1">
+              <input type="email" id="reg-email" placeholder="Enter Email" />
+              <button onclick="sendEmailOtp()">Send Code</button>
+
+              <div class="bottom-link">
+                Already have an account?
+                <span onclick="setMode('login')">Login</span>
+              </div>
+            </div>
+
+            <div id="email-reg-step2" class="hidden">
+              <p class="subtitle">We sent a code to your email</p>
+              <input
+                type="text"
+                id="reg-email-otp"
+                class="otp-display"
+                placeholder="123456"
+                maxlength="6"
+              />
+              <button onclick="verifyEmailOtp()">Verify</button>
+
+              <button id="resend-btn" onclick="sendEmailOtp()" disabled>
+                Resend Code (60s)
+              </button>
+            </div>
+
+            <div id="email-reg-step3" class="hidden">
+              <p class="subtitle">Set your password</p>
+              <input
+                type="password"
+                id="reg-password"
+                placeholder="New Password"
+              />
+              <input
+                type="password"
+                id="reg-confirm"
+                placeholder="Confirm Password"
+              />
+              <button onclick="finalizeEmailRegister()">Create Account</button>
+            </div>
+          </div>
+        </div>
+
+        <p id="status"></p>
+      </div>
+    </div>
+<script type="module" src="{% static 'scripts/login.js' %}"></script>
+  </body>
+</html>

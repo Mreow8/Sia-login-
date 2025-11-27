@@ -1,0 +1,9 @@
+# Django defaults
+*.pyc
+__pycache__/
+db.sqlite3
+
+# Env files
+.env
+
+firebase/serviceAccountKey.json

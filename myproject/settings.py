@@ -129,3 +129,34 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'pipeline.finders.PipelineFinder',
 ]
+PIPELINE = {
+    'STYLESHEETS': {
+        'main': {
+            'source_filenames': (
+                'css/main.css',
+            ),
+            'output_filename': 'css/main.min.css',
+        },
+    },
+    'JAVASCRIPT': {
+        'main': {
+            'source_filenames': (
+                'js/main.js',
+            ),
+            'output_filename': 'js/main.min.js',
+        },
+    },
+}
+from decouple import config
+
+FIREBASE_CONFIG = {
+    "apiKey": config("FIREBASE_API_KEY"),
+    "authDomain": config("FIREBASE_AUTH_DOMAIN"),
+    "projectId": config("FIREBASE_PROJECT_ID"),
+    "storageBucket": config("FIREBASE_STORAGE_BUCKET"),
+    "messagingSenderId": config("FIREBASE_MESSAGING_SENDER_ID"),
+    "appId": config("FIREBASE_APP_ID"),
+    "measurementId": config("FIREBASE_MEASUREMENT_ID"),
+}
+
+FIREBASE_SERVICE_ACCOUNT = config("FIREBASE_SERVICE_ACCOUNT")
