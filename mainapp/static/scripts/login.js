@@ -6,15 +6,24 @@ import {
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 1. Initialize using the global window variable (defined in HTML)
-const app = initializeApp(window.firebaseConfig);
+const firebaseConfig = {
+  apiKey: firebase_config.apiKey,
+  authDomain: firebase_config.authDomain,
+  projectId: firebase_config.projectId,
+  storageBucket: firebase_config.storageBucket,
+  messagingSenderId: firebase_config.messagingSenderId,
+  appId: firebase_config.appId,
+  measurementId: firebase_config.measurementId,
+};
+
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// State
+// Global state
 window.currentMode = "login";
 window.resendTimer = null;
 
-// Status helper
+// Status message helper
 function setStatus(msg, type = "normal") {
   const el = document.getElementById("status");
   el.innerText = msg;
@@ -28,7 +37,9 @@ async function reportFailure(identifier) {
       method: "POST",
       body: JSON.stringify({ identifier }),
     });
+
     const data = await res.json();
+
     if (data.status === "blocked") {
       setStatus(data.message, "error");
       document.querySelectorAll("button").forEach((b) => (b.disabled = true));
@@ -40,7 +51,7 @@ async function reportFailure(identifier) {
   return false;
 }
 
-// TIMER FUNCTION
+// Resend OTP cooldown
 window.startCooldown = () => {
   const btn = document.getElementById("resend-btn");
   let timeLeft = 60;
@@ -62,7 +73,7 @@ window.startCooldown = () => {
   }, 1000);
 };
 
-// EMAIL LOGIN
+// LOGIN
 window.handleEmailLogin = async () => {
   const email = document.getElementById("login-email").value;
   const pass = document.getElementById("login-password").value;
@@ -86,7 +97,6 @@ window.sendEmailOtp = async () => {
 
   setStatus("Sending code...");
 
-  // Disable buttons
   const resendBtn = document.getElementById("resend-btn");
   if (resendBtn) resendBtn.disabled = true;
 
@@ -94,6 +104,7 @@ window.sendEmailOtp = async () => {
     method: "POST",
     body: JSON.stringify({ email }),
   });
+
   const data = await res.json();
 
   if (data.status === "success") {
@@ -107,20 +118,17 @@ window.sendEmailOtp = async () => {
   }
 };
 
-// VERIFY EMAIL OTP (FIXED SECTION)
+// VERIFY OTP
 window.verifyEmailOtp = async () => {
   const otp = document.getElementById("reg-email-otp").value;
-  // --- FIX START: We must get the email too! ---
-  const email = document.getElementById("reg-email").value;
-  // --- FIX END ---
 
   setStatus("Verifying...");
 
   const res = await fetch("/api/verify_email_otp/", {
     method: "POST",
-    // We send BOTH email and otp now
-    body: JSON.stringify({ email: email, otp: otp }),
+    body: JSON.stringify({ otp }),
   });
+
   const data = await res.json();
 
   if (data.status === "success") {
@@ -147,15 +155,13 @@ window.finalizeEmailRegister = async () => {
 
     setMode("login");
     document.getElementById("login-email").value = email;
-    document.getElementById("reg-password").value = "";
-    document.getElementById("reg-confirm").value = "";
-
-    setStatus("Success! Please log in.", "normal");
+    setStatus("Success! Please log in.");
   } catch (e) {
     setStatus(e.message, "error");
   }
 };
 
+// BACKEND LOGIN
 async function completeBackendLogin(user) {
   setStatus("Securing session...");
   const token = await user.getIdToken();
@@ -166,34 +172,9 @@ async function completeBackendLogin(user) {
   });
 
   if (res.ok) {
-    // Redirect to home page on success
     window.location.href = "/";
   } else {
     const d = await res.json();
     setStatus(d.message || "Login blocked.", "error");
   }
 }
-
-// MODE SWITCHING (Visual Update)
-window.setMode = (mode) => {
-  window.currentMode = mode;
-  const title = document.getElementById("page-title");
-  const subtitle = document.getElementById("page-subtitle");
-
-  if (mode === "login") {
-    document.getElementById("email-login-view").classList.remove("hidden");
-    document.getElementById("email-register-view").classList.add("hidden");
-    title.innerText = "Welcome Back";
-    subtitle.innerText = "Login to your account";
-  } else {
-    document.getElementById("email-login-view").classList.add("hidden");
-    document.getElementById("email-register-view").classList.remove("hidden");
-    // Reset steps
-    document.getElementById("email-reg-step1").classList.remove("hidden");
-    document.getElementById("email-reg-step2").classList.add("hidden");
-    document.getElementById("email-reg-step3").classList.add("hidden");
-    title.innerText = "Register";
-    subtitle.innerText = "Create your new account";
-  }
-  setStatus(""); // Clear errors
-};

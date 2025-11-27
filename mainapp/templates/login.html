@@ -3,12 +3,11 @@
   <head>
     <title>Welcome Back</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-
     <link rel="stylesheet" href="{% static 'styles/login.css' %}" />
   </head>
   <body>
+    <div class="container">
       <div class="hero-header"></div>
-
       <div class="form-wrapper">
         <h2 id="page-title">Welcome Back</h2>
         <p class="subtitle" id="page-subtitle">Login to your account</p>
@@ -18,16 +17,16 @@
             <input type="email" id="login-email" placeholder="Email Address" />
             <input type="password" id="login-password" placeholder="Password" />
 
-            <div style="text-align: right; margin-top: 5px; margin-bottom: 5px">
+            <!-- <div style="text-align: right; margin-top: 5px; margin-bottom: 5px">
               <a
                 href="#"
+                onclick="handleForgotPassword()"
                 style="font-size: 12px; color: #88a494; text-decoration: none"
                 >Forgot Password?</a
               >
-            </div>
+            </div> -->
 
-            <button onclick="handleEmailLogin()">Login</button>
-
+            <button id="login-btn" onclick="handleEmailLogin()">Login</button>
             <div class="bottom-link">
               Don't have an account?
               <span onclick="setMode('register')">Sign up</span>
@@ -38,7 +37,6 @@
             <div id="email-reg-step1">
               <input type="email" id="reg-email" placeholder="Enter Email" />
               <button onclick="sendEmailOtp()">Send Code</button>
-
               <div class="bottom-link">
                 Already have an account?
                 <span onclick="setMode('login')">Login</span>
@@ -55,7 +53,6 @@
                 maxlength="6"
               />
               <button onclick="verifyEmailOtp()">Verify</button>
-
               <button id="resend-btn" onclick="sendEmailOtp()" disabled>
                 Resend Code (60s)
               </button>
@@ -77,23 +74,275 @@
             </div>
           </div>
         </div>
-
         <p id="status"></p>
       </div>
     </div>
-  <script>
-    // 1. Define the config here so Django can fill in the values
-    window.firebaseConfig = {
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getAuth,
+        signInWithEmailAndPassword,
+        createUserWithEmailAndPassword,
+        signOut,
+        sendPasswordResetEmail,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+      const firebaseConfig = {
         apiKey: "{{ firebase_config.apiKey }}",
         authDomain: "{{ firebase_config.authDomain }}",
         projectId: "{{ firebase_config.projectId }}",
         storageBucket: "{{ firebase_config.storageBucket }}",
         messagingSenderId: "{{ firebase_config.messagingSenderId }}",
         appId: "{{ firebase_config.appId }}",
-        measurementId: "{{ firebase_config.measurementId }}"
-    };
-</script>
+        measurementId: "{{ firebase_config.measurementId }}",
+      };
 
-<script type="module" src="{% static 'scripts/login.js' %}"></script>
-</body>
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      window.currentMode = "login";
+      window.resendTimer = null;
+      window.lockdownTimer = null;
+
+      function setStatus(msg, type = "normal") {
+        const el = document.getElementById("status");
+        el.innerText = msg;
+        el.style.color = type === "error" ? "#dc3545" : "#88a494";
+      }
+
+      function startLockdownTimer(seconds) {
+        let timeLeft = seconds;
+        document.querySelectorAll("button").forEach((b) => (b.disabled = true));
+
+        if (window.lockdownTimer) clearInterval(window.lockdownTimer);
+
+        setStatus(`Too many attempts. Wait ${timeLeft}s`, "error");
+
+        window.lockdownTimer = setInterval(() => {
+          timeLeft--;
+          if (timeLeft <= 0) {
+            clearInterval(window.lockdownTimer);
+            document
+              .querySelectorAll("button")
+              .forEach((b) => (b.disabled = false));
+            setStatus("Please try again.", "normal");
+          } else {
+            setStatus(`Too many attempts. Wait ${timeLeft}s`, "error");
+          }
+        }, 1000);
+      }
+
+      async function reportFailure(identifier) {
+        try {
+          const res = await fetch("/api/report_failure/", {
+            method: "POST",
+            body: JSON.stringify({ identifier }),
+          });
+          const data = await res.json();
+
+          if (data.status === "blocked") {
+            startLockdownTimer(30);
+            return true;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        return false;
+      }
+
+      window.startCooldown = () => {
+        const btn = document.getElementById("resend-btn");
+        if (!btn) return;
+        let timeLeft = 60;
+        btn.disabled = true;
+        btn.innerText = `Resend Code (${timeLeft}s)`;
+        if (window.resendTimer) clearInterval(window.resendTimer);
+        window.resendTimer = setInterval(() => {
+          timeLeft--;
+          btn.innerText = `Resend Code (${timeLeft}s)`;
+          if (timeLeft <= 0) {
+            clearInterval(window.resendTimer);
+            btn.disabled = false;
+            btn.innerText = "Resend Code";
+          }
+        }, 1000);
+      };
+
+      window.handleForgotPassword = async () => {
+        const email = document.getElementById("login-email").value;
+        if (!email) {
+          return setStatus("Please enter your email address first.", "error");
+        }
+        setStatus("Sending reset email...");
+        try {
+          await sendPasswordResetEmail(auth, email);
+          setStatus("Password reset email sent! Check your inbox.", "normal");
+        } catch (error) {
+          if (
+            error.code === "auth/user-not-found" ||
+            error.code === "auth/invalid-email"
+          ) {
+            setStatus("User does not exist", "error");
+          } else {
+            setStatus(error.message, "error");
+          }
+        }
+      };
+
+      window.handleEmailLogin = async () => {
+        const email = document.getElementById("login-email").value;
+        const pass = document.getElementById("login-password").value;
+
+        if (!email || !pass)
+          return setStatus("Please fill all fields", "error");
+        setStatus("Authenticating...");
+
+        try {
+          const cred = await signInWithEmailAndPassword(auth, email, pass);
+          completeBackendLogin(cred.user);
+        } catch (error) {
+          console.error(error);
+
+          const isBlocked = await reportFailure(email);
+          if (isBlocked) return;
+
+          // UPDATED: Distinguish errors
+          if (error.code === "auth/user-not-found") {
+            setStatus("User does not exist", "error");
+          } else if (
+            error.code === "auth/wrong-password" ||
+            error.code === "auth/invalid-credential"
+          ) {
+            setStatus("Invalid email or password", "error");
+          } else {
+            setStatus(error.message || "Login failed.", "error");
+          }
+        }
+      };
+
+      window.sendEmailOtp = async () => {
+        const email = document.getElementById("reg-email").value;
+        if (!email) return setStatus("Enter email first", "error");
+        setStatus("Sending code...");
+
+        const res = await fetch("/api/send_email_otp/", {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+          document.getElementById("email-reg-step1").classList.add("hidden");
+          document.getElementById("email-reg-step2").classList.remove("hidden");
+          setStatus("Code sent!");
+          startCooldown();
+        } else {
+          setStatus(data.message, "error");
+        }
+      };
+
+      window.verifyEmailOtp = async () => {
+        const otp = document.getElementById("reg-email-otp").value;
+        const email = document.getElementById("reg-email").value;
+        setStatus("Verifying...");
+
+        const res = await fetch("/api/verify_email_otp/", {
+          method: "POST",
+          body: JSON.stringify({ otp: otp, email: email }),
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+          document.getElementById("email-reg-step2").classList.add("hidden");
+          document.getElementById("email-reg-step3").classList.remove("hidden");
+          setStatus("Email verified.");
+        } else {
+          setStatus("Incorrect Code.", "error");
+        }
+      };
+
+      window.finalizeEmailRegister = async () => {
+        const email = document.getElementById("reg-email").value;
+        const pass = document.getElementById("reg-password").value;
+        const confirm = document.getElementById("reg-confirm").value;
+
+        if (pass !== confirm)
+          return setStatus("Passwords do not match", "error");
+        if (pass.length < 6) return setStatus("Password too short", "error");
+
+        setStatus("Creating account...");
+
+        try {
+          const cred = await createUserWithEmailAndPassword(auth, email, pass);
+
+          const token = await cred.user.getIdToken();
+          const backendRes = await fetch("/api/register/", {
+            method: "POST",
+            body: JSON.stringify({ token: token }),
+          });
+          const backendData = await backendRes.json();
+
+          if (backendData.status === "error") {
+            await cred.user.delete();
+            throw new Error(backendData.message);
+          }
+
+          await signOut(auth);
+          setMode("login");
+          document.getElementById("login-email").value = email;
+          document.getElementById("reg-password").value = "";
+          document.getElementById("reg-confirm").value = "";
+          setStatus("Success! Please log in.", "normal");
+        } catch (e) {
+          setStatus(e.message, "error");
+        }
+      };
+
+      async function completeBackendLogin(user) {
+        setStatus("Securing session...");
+        const token = await user.getIdToken();
+
+        const res = await fetch("/api/login/", {
+          method: "POST",
+          body: JSON.stringify({ token }),
+        });
+
+        if (res.ok) {
+          window.location.href = "/dashboard/";
+        } else {
+          const d = await res.json();
+          if (res.status === 403) {
+            startLockdownTimer(30);
+          } else {
+            setStatus(d.message || "Login blocked.", "error");
+          }
+        }
+      }
+
+      window.setMode = (mode) => {
+        window.currentMode = mode;
+        const title = document.getElementById("page-title");
+        if (mode === "login") {
+          document
+            .getElementById("email-login-view")
+            .classList.remove("hidden");
+          document
+            .getElementById("email-register-view")
+            .classList.add("hidden");
+          title.innerText = "Welcome Back";
+        } else {
+          document.getElementById("email-login-view").classList.add("hidden");
+          document
+            .getElementById("email-register-view")
+            .classList.remove("hidden");
+          document.getElementById("email-reg-step1").classList.remove("hidden");
+          document.getElementById("email-reg-step2").classList.add("hidden");
+          document.getElementById("email-reg-step3").classList.add("hidden");
+          title.innerText = "Register";
+        }
+        setStatus("");
+      };
+    </script>
+  </body>
 </html>
