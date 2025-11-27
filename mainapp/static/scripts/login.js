@@ -179,3 +179,29 @@ async function completeBackendLogin(user) {
   }
 }
 
+// MODE SWITCH
+window.setMode = (mode) => {
+  window.currentMode = mode;
+
+  const title = document.getElementById("page-title");
+  const subtitle = document.getElementById("page-subtitle");
+
+  if (mode === "login") {
+    document.getElementById("email-login-view").classList.remove("hidden");
+    document.getElementById("email-register-view").classList.add("hidden");
+    title.innerText = "Welcome Back";
+    subtitle.innerText = "Login to your account";
+  } else {
+    document.getElementById("email-login-view").classList.add("hidden");
+    document.getElementById("email-register-view").classList.remove("hidden");
+
+    document.getElementById("email-reg-step1").classList.remove("hidden");
+    document.getElementById("email-reg-step2").classList.add("hidden");
+    document.getElementById("email-reg-step3").classList.add("hidden");
+
+    title.innerText = "Register";
+    subtitle.innerText = "Create your new account";
+  }
+
+  setStatus("");
+};
