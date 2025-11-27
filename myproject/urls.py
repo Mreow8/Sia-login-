@@ -1,7 +1,9 @@
 from django.contrib import admin
-from django.urls import path
-from mainapp import views 
+from django.urls import path, include  # <-- Make sure 'include' is imported!
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.login_page, name='home'),  # Homepage
+    
+    # This line tells Django: "For everything else, look inside mainapp/urls.py"
+    path('', include('mainapp.urls')), 
 ]

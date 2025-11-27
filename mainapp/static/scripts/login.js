@@ -6,17 +6,8 @@ import {
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "{{ firebase_config.apiKey }}",
-  authDomain: "{{ firebase_config.authDomain }}",
-  projectId: "{{ firebase_config.projectId }}",
-  storageBucket: "{{ firebase_config.storageBucket }}",
-  messagingSenderId: "{{ firebase_config.messagingSenderId }}",
-  appId: "{{ firebase_config.appId }}",
-  measurementId: "{{ firebase_config.measurementId }}",
-};
-
-const app = initializeApp(firebaseConfig);
+// 1. Initialize using the global window variable (defined in HTML)
+const app = initializeApp(window.firebaseConfig);
 const auth = getAuth(app);
 
 // State
@@ -116,14 +107,19 @@ window.sendEmailOtp = async () => {
   }
 };
 
-// VERIFY EMAIL OTP
+// VERIFY EMAIL OTP (FIXED SECTION)
 window.verifyEmailOtp = async () => {
   const otp = document.getElementById("reg-email-otp").value;
+  // --- FIX START: We must get the email too! ---
+  const email = document.getElementById("reg-email").value;
+  // --- FIX END ---
+
   setStatus("Verifying...");
 
   const res = await fetch("/api/verify_email_otp/", {
     method: "POST",
-    body: JSON.stringify({ otp }),
+    // We send BOTH email and otp now
+    body: JSON.stringify({ email: email, otp: otp }),
   });
   const data = await res.json();
 
@@ -170,6 +166,7 @@ async function completeBackendLogin(user) {
   });
 
   if (res.ok) {
+    // Redirect to home page on success
     window.location.href = "/";
   } else {
     const d = await res.json();

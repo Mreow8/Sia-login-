@@ -1,10 +1,7 @@
 import firebase_admin
-from firebase_admin import credentials, firestore, storage
+from firebase_admin import credentials, firestore, auth
 
 cred = credentials.Certificate("firebase/serviceAccountKey.json")
-firebase_admin.initialize_app(cred, {
-    "storageBucket": "<your-bucket-name>.appspot.com"
-})
+firebase_admin.initialize_app(cred)
 
 db = firestore.client()
-bucket = storage.bucket()

@@ -81,6 +81,19 @@
         <p id="status"></p>
       </div>
     </div>
+  <script>
+    // 1. Define the config here so Django can fill in the values
+    window.firebaseConfig = {
+        apiKey: "{{ firebase_config.apiKey }}",
+        authDomain: "{{ firebase_config.authDomain }}",
+        projectId: "{{ firebase_config.projectId }}",
+        storageBucket: "{{ firebase_config.storageBucket }}",
+        messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+        appId: "{{ firebase_config.appId }}",
+        measurementId: "{{ firebase_config.measurementId }}"
+    };
+</script>
+
 <script type="module" src="{% static 'scripts/login.js' %}"></script>
-  </body>
+</body>
 </html>
