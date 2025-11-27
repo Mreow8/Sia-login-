@@ -205,8 +205,6 @@ window.setMode = (mode) => {
 
   setStatus("");
 };
-/*
-  This is a multi-line comment
-  You can write multiple lines here
-*/
+
+
 
