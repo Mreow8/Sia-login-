@@ -6,15 +6,17 @@
   --text-dark: #1b3a2b;
   --white: #ffffff;
 }
-
 body {
   font-family: "Poppins", sans-serif;
   background-color: #cddbcc;
-  /* Using external image for background */
+
+  /* Local static image */
   background-image: url("plant.jfif");
 
   background-size: cover;
+  background-repeat: no-repeat;
   background-position: center;
+
   backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;

@@ -10,9 +10,13 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+# NEW IMPORTS
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from smtplib import SMTPException
+
 from .models import EmailVerification, LoginAttempt
 from firebase_admin import auth
-
 @ensure_csrf_cookie
 def login_page(request):
     if request.user.is_authenticated:
@@ -34,24 +38,31 @@ def logout_view(request):
     return redirect('/')
 
 # --- REGISTRATION & OTP SECTION ---
-
 @csrf_exempt
 def send_email_otp(request):
     if request.method == "POST":
-        data = json.loads(request.body)
-        email = data.get('email')
-        
-        if User.objects.filter(email=email).exists():
-             return JsonResponse({'status': 'error', 'message': 'Email already registered. Please login.'})
-
-        otp = str(random.randint(100000, 999999))
-        
-        EmailVerification.objects.update_or_create(
-            email=email,
-            defaults={'otp_code': otp, 'is_verified': False, 'created_at': timezone.now()}
-        )
-        
         try:
+            data = json.loads(request.body)
+            email = data.get('email', '').strip()
+
+            # 1. Validate Email Format (Backend Safety)
+            try:
+                validate_email(email)
+            except ValidationError:
+                return JsonResponse({'status': 'error', 'message': 'Invalid email address format.'})
+
+            # 2. Check if already registered
+            if User.objects.filter(email=email).exists():
+                 return JsonResponse({'status': 'error', 'message': 'Account already exists. Please login.'})
+
+            # 3. Generate and Send Code
+            otp = str(random.randint(100000, 999999))
+            
+            EmailVerification.objects.update_or_create(
+                email=email,
+                defaults={'otp_code': otp, 'is_verified': False, 'created_at': timezone.now()}
+            )
+            
             send_mail(
                 'Verification Code',
                 f'Your code is: {otp}',
@@ -60,9 +71,14 @@ def send_email_otp(request):
                 fail_silently=False,
             )
             return JsonResponse({'status': 'success', 'message': 'Code sent!'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
 
+        except SMTPException:
+            # Catch specific email server errors
+            return JsonResponse({'status': 'error', 'message': 'Could not send email. Please check the address.'})
+        except Exception as e:
+            # Catch other JSON/Logic errors without showing raw code
+            print(f"Error: {e}") # Keep raw error in console for you
+            return JsonResponse({'status': 'error', 'message': 'An error occurred. Please try again.'})
 @csrf_exempt
 def verify_email_otp(request):
     if request.method == "POST":

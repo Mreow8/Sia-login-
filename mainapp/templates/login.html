@@ -221,27 +221,55 @@
         }
       };
 
+      function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+      }
+
       window.sendEmailOtp = async () => {
-        const email = document.getElementById("reg-email").value;
-        if (!email) return setStatus("Enter email first", "error");
+        const emailInput = document.getElementById("reg-email");
+        const email = emailInput.value.trim();
+
+        // 1. Client-Side Validation
+        if (!email) {
+          return setStatus("Enter email first", "error");
+        }
+        if (!isValidEmail(email)) {
+          return setStatus(
+            "Please enter a valid email address (e.g. user@gmail.com)",
+            "error"
+          );
+        }
+
         setStatus("Sending code...");
 
-        const res = await fetch("/api/send_email_otp/", {
-          method: "POST",
-          body: JSON.stringify({ email }),
-        });
-        const data = await res.json();
+        const resendBtn = document.getElementById("resend-btn");
+        if (resendBtn) resendBtn.disabled = true;
 
-        if (data.status === "success") {
-          document.getElementById("email-reg-step1").classList.add("hidden");
-          document.getElementById("email-reg-step2").classList.remove("hidden");
-          setStatus("Code sent!");
-          startCooldown();
-        } else {
-          setStatus(data.message, "error");
+        try {
+          const res = await fetch("/api/send_email_otp/", {
+            method: "POST",
+            body: JSON.stringify({ email }),
+          });
+          const data = await res.json();
+
+          if (data.status === "success") {
+            document.getElementById("email-reg-step1").classList.add("hidden");
+            document
+              .getElementById("email-reg-step2")
+              .classList.remove("hidden");
+            setStatus("Code sent!");
+            startCooldown();
+          } else {
+            // This will now show "Account already exists" or "Invalid email" cleanly
+            setStatus(data.message, "error");
+            if (resendBtn) resendBtn.disabled = false;
+          }
+        } catch (error) {
+          setStatus("Network error. Try again.", "error");
+          if (resendBtn) resendBtn.disabled = false;
         }
       };
-
       window.verifyEmailOtp = async () => {
         const otp = document.getElementById("reg-email-otp").value;
         const email = document.getElementById("reg-email").value;
