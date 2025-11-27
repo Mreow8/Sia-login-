@@ -3,9 +3,17 @@ from decouple import config, Csv
 import firebase_admin
 from firebase_admin import credentials
 
-# --------------------
-# Base directory
-# --------------------
+import json
+import firebase_admin
+from firebase_admin import credentials
+from decouple import config
+
+if not firebase_admin._apps:
+    cred_json = config("FIREBASE_SERVICE_ACCOUNT_JSON")
+    cred_dict = json.loads(cred_json)
+    cred = credentials.Certificate(cred_dict)
+    firebase_admin.initialize_app(cred)
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --------------------
