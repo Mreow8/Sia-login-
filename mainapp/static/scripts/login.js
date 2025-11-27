@@ -208,8 +208,5 @@ window.setMode = (mode) => {
 /*
   This is a multi-line comment
   You can write multiple lines here
-*//*
-  This is a multi-line comment
-  You can write multiple lines here
 */
 
