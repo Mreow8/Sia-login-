@@ -27,8 +27,7 @@ SECRET_KEY = 'django-insecure-wms3(k^@+m4#$4&6uy04!nv391qte85+2^6qvk@z42gda5#u#i
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').replace(' ', '').split(',')
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
