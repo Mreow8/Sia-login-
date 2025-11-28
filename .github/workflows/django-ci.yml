@@ -1,5 +1,6 @@
 name: Django CI/CD
 
+# Trigger the workflow on push or pull request to main branch
 on:
   push:
     branches:
@@ -9,7 +10,7 @@ on:
       - main
 
 jobs:
-  build-and-test:
+  build-test-deploy:
     runs-on: ubuntu-latest
 
     services:
@@ -29,40 +30,51 @@ jobs:
 
     env:
       FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      BREVO_API_KEY: dummy-key-for-ci
-      EMAIL_HOST_USER: dummy@example.com
+      BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+      EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
 
     steps:
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      # Step 2: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
+      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Step 4: Setup Firebase service account
       - name: Write Firebase service account
         run: |
           mkdir -p firebase
           echo "$FIREBASE_SERVICE_ACCOUNT" > firebase/serviceAccountKey.json
 
+      # Step 5: Apply migrations
       - name: Apply migrations
         run: |
           python manage.py migrate
 
+      # Step 6: Collect static files
       - name: Collect static files
         run: |
           python manage.py collectstatic --noinput
 
-      - name: Run tests
+      # Step 7: Run tests
+      - name: Run Django tests
         run: |
           python manage.py test
 
-      - name: Optional Deployment Step
+      # Step 8: Deploy to Render (example)
+      - name: Deploy to Render
+        if: github.ref == 'refs/heads/main' && success()
         run: |
-          echo "Add your deployment script here (e.g., Render, Heroku, etc.)"
+          # Example: Use Render CLI for deployment
+          curl -L https://cli.render.com/install.sh | bash
+          render deploy service <your-render-service-id> --api-key ${{ secrets.RENDER_API_KEY }}
