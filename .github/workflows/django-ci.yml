@@ -30,8 +30,9 @@ jobs:
           pip install -r requirements.txt
           pip install python-decouple
 
-      - name: Write Firebase JSON
+      - name: Save Firebase service account
         run: |
+          mkdir -p firebase
           echo "$FIREBASE_SERVICE_ACCOUNT" > firebase/serviceAccountKey.json
 
       - name: Run migrations
