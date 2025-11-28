@@ -1,4 +1,4 @@
-name: Django CI/CD Pipeline
+name: Django CI Pipeline
 
 on:
   push:
@@ -14,8 +14,6 @@ jobs:
   # -----------------------------
   build:
     runs-on: ubuntu-latest
-    outputs:
-      python-path: ${{ steps.set-python-path.outputs.python-path }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -29,10 +27,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Save Python path
-        id: set-python-path
-        run: echo "::set-output name=python-path::$(which python)"
 
   # -----------------------------
   # 2️⃣ Test Job
@@ -83,19 +77,3 @@ jobs:
 
       - name: Run tests
         run: python manage.py test
-
-  # -----------------------------
-  # 3️⃣ Deploy Job
-  # -----------------------------
-  deploy:
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Deploy to Render
-        run: |
-          curl -L https://render.com/cli/install.sh | bash
-          render deploy service srv-d4ji1hmuk2gs73blmlng --api-key ${{ secrets.RENDER_API_KEY }}
