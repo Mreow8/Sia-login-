@@ -15,6 +15,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from smtplib import SMTPException
 from myproject.firebase import firebase_admin  # ensures Firebase is initialized
+from myproject import init_firebase
 from firebase_admin import auth
 from .models import EmailVerification, LoginAttempt
 
@@ -172,6 +173,13 @@ def complete_registration(request):
             data = json.loads(request.body)
             token = data.get('token')
             
+            # Ensure SDK is initialized; call again in case module-level init failed
+            init_firebase()
+            # Verify initialization explicitly so we can return a helpful error
+            try:
+                firebase_admin.get_app()
+            except ValueError:
+                return JsonResponse({'status': 'error', 'message': 'Server Firebase Admin SDK not configured.'}, status=500)
             decoded_token = auth.verify_id_token(token)
             email = decoded_token['email']
 
@@ -193,6 +201,11 @@ def handle_email_login(request):
 
         try:
             # 1. Verify Token
+            init_firebase()
+            try:
+                firebase_admin.get_app()
+            except ValueError:
+                return JsonResponse({'success': False, 'message': 'Server Firebase Admin SDK not configured.'}, status=500)
             decoded_token = auth.verify_id_token(token)
             email = decoded_token['email']
             
