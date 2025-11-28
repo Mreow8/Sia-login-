@@ -1,4 +1,4 @@
-name: Django CI/CD
+name: Django CI/CD Pipeline
 
 on:
   push:
@@ -7,70 +7,67 @@ on:
     branches: [main]
 
 jobs:
-  build-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      # You can define some defaults here if needed
+      DEBUG: "True"
+      SECRET_KEY: "replace-with-a-secure-key"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,yourapp.onrender.com"
+
     steps:
-      # 1. Checkout the code
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11 # Use the version you need
+          python-version: "3.11"
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install python-decouple firebase-admin sib-api-v3-sdk
 
-      # 4. Create Firebase folder
-      - name: Create Firebase folder
-        run: mkdir -p firebase
-
-      # 5. Write Firebase service account JSON from secret
-      - name: Write Firebase credentials
+      # --- Create .env from GitHub Secrets ---
+      - name: Create .env file
         run: |
+          mkdir -p firebase
           echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > firebase/serviceAccountKey.json
-          cat firebase/serviceAccountKey.json | head -n 5  # Optional debug to check first few lines
-
-      # 6. Write .env file dynamically
-      - name: Write .env
-        run: |
           echo "DEBUG=True" > .env
-          echo "SECRET_KEY=replace-this-with-a-secret" >> .env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
           echo "ALLOWED_HOSTS=localhost,127.0.0.1,yourapp.onrender.com" >> .env
           echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env
-          echo "FIREBASE_AUTH_DOMAIN=your-firebase-auth-domain" >> .env
-          echo "FIREBASE_PROJECT_ID=your-firebase-project-id" >> .env
-          echo "FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket" >> .env
-          echo "FIREBASE_MESSAGING_SENDER_ID=your-firebase-sender-id" >> .env
-          echo "FIREBASE_APP_ID=your-firebase-app-id" >> .env
-          echo "FIREBASE_MEASUREMENT_ID=your-firebase-measurement-id" >> .env
+          echo "FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}" >> .env
+          echo "FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> .env
+          echo "FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}" >> .env
+          echo "FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" >> .env
+          echo "FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}" >> .env
+          echo "FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID }}" >> .env
           echo "FIREBASE_SERVICE_ACCOUNT=firebase/serviceAccountKey.json" >> .env
+          echo "EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}" >> .env
+          echo "EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}" >> .env
           echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> .env
           echo "BREVO_SENDER_EMAIL=${{ secrets.BREVO_SENDER_EMAIL }}" >> .env
           echo "BREVO_SENDER_NAME=${{ secrets.BREVO_SENDER_NAME }}" >> .env
 
-      # 7. Run Django migrations
-      - name: Django migrations
+      - name: Apply migrations
         run: |
           python manage.py migrate
 
-      # 8. Collect static files (if needed)
       - name: Collect static files
         run: |
           python manage.py collectstatic --noinput
 
-      # 9. Run tests
-      - name: Run Django tests
+      - name: Run tests
         run: |
           python manage.py test
 
-      # 10. Optional: Deploy steps here (e.g., Render, Heroku)
+      # Optional: Deployment step to Render, Heroku, or other host
       # - name: Deploy to Render
-      #   run: render deploy --service your-service-id
+      #   run: |
+      #     curl -X POST -H "Accept: application/json" \
+      #     -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+      #     https://api.render.com/deploy/srv-xxxxxx
