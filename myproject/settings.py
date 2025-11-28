@@ -8,9 +8,10 @@ import os
 import firebase_admin
 from firebase_admin import credentials
 
-# ... existing code ...
+BREVO_API_KEY = config("BREVO_API_KEY")
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+BREVO_SENDER_NAME = config("BREVO_SENDER_NAME")
 
-# --- FIREBASE SETUP ---
 if not firebase_admin._apps:
     if os.path.exists('/etc/secrets/serviceAccountKey.json'):
         cred_path = '/etc/secrets/serviceAccountKey.json'
@@ -153,11 +154,3 @@ if not firebase_admin._apps:
     cred_path = config("FIREBASE_SERVICE_ACCOUNT")
     cred = credentials.Certificate(cred_path)
     firebase_admin.initialize_app(cred)
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-
