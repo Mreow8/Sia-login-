@@ -12,6 +12,7 @@ BREVO_API_KEY = config("BREVO_API_KEY")
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 BREVO_SENDER_NAME = config("BREVO_SENDER_NAME")
 
+BREVO_API_KEY = config("BREVO_API_KEY", default="dummy-key-for-ci")
 if not firebase_admin._apps:
     if os.path.exists('/etc/secrets/serviceAccountKey.json'):
         cred_path = '/etc/secrets/serviceAccountKey.json'
