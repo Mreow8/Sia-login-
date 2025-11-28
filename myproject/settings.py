@@ -11,10 +11,6 @@ from firebase_admin import credentials
 BREVO_API_KEY = config("BREVO_API_KEY")
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 BREVO_SENDER_NAME = config("BREVO_SENDER_NAME")
-from decouple import config
-
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="no-reply@example.com")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="password")
 
 BREVO_API_KEY = config("BREVO_API_KEY", default="dummy-key-for-ci")
 if not firebase_admin._apps:
