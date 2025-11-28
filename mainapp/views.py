@@ -14,9 +14,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from smtplib import SMTPException
-
-from .models import EmailVerification, LoginAttempt
+from myproject.firebase import firebase_admin  # ensures Firebase is initialized
 from firebase_admin import auth
+from .models import EmailVerification, LoginAttempt
 
 import json
 import random
